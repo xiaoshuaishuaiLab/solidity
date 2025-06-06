@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.10;
 
-import "./ERC20Mintable.sol";
 import "forge-std/Test.sol";
-import {UniswapV3Factory} from "../src/UniswapV3Factory.sol";
+import "./ERC20Mintable.sol";
+import "../src/UniswapV3Factory.sol";
+import "../src/UniswapV3Pool.sol";
+import "../src/lib/Math.sol";
+
 
 contract UniswapV3FactoryTest is Test{
     ERC20Mintable weth;
@@ -18,9 +21,16 @@ contract UniswapV3FactoryTest is Test{
 
     // forge test  --match-test testCreatePool -vv
     function testCreatePool() public {
-        address pool = factory.createPool(address(weth), address(usdt), 500);
-        console.log("pool address: ", pool);
-        assertEq(pool, address(0x11Ab86100B893067ee60bb9945B06f56055dbE8c), "Pool address does not match expected address");
-//        factory.createPool();
+        address poolAddress = factory.createPool(address(weth), address(usdt), 500);
+        console.log("pool address: ", poolAddress);
+        UniswapV3Pool pool = UniswapV3Pool(poolAddress);
+
+        pool.initialize(Math.sqrtP(2500));
+
+        (uint160 sqrtPriceX96, int24 tick) = pool.slot0();
+        console.log("slot0.sqrtPriceX96: %s", sqrtPriceX96);
+        console.log("slot0.tick: %s", tick);
     }
+
+
 }

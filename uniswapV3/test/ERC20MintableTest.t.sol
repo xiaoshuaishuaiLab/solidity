@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.10;
 
-import {ERC20Mintable} from "./ERC20Mintable.sol";
 import "forge-std/Test.sol";
+
+import {ERC20Mintable} from "./ERC20Mintable.sol";
 
 
 contract ERC20MintableTest is Test{
@@ -20,9 +21,6 @@ contract ERC20MintableTest is Test{
 
         console.log("usdt balance: ", usdt.balanceOf(address(this)));
         assert(usdt.balanceOf(address(this)) == 1000 ether);
-
-
-
     }
 
 }
