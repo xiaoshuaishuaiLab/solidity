@@ -20,6 +20,7 @@ contract UniswapV3FactoryTest is Test{
     function testCreatePool() public {
         address pool = factory.createPool(address(weth), address(usdt), 500);
         console.log("pool address: ", pool);
+        assertEq(pool, address(0x11Ab86100B893067ee60bb9945B06f56055dbE8c), "Pool address does not match expected address");
 //        factory.createPool();
     }
 }
