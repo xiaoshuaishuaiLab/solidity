@@ -1,0 +1,2 @@
+# about
+solidity learning
