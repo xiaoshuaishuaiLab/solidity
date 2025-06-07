@@ -26,10 +26,11 @@ contract UniswapV3FactoryTest is Test{
         UniswapV3Pool pool = UniswapV3Pool(poolAddress);
 
         pool.initialize(Math.sqrtP(2500));
-
         (uint160 sqrtPriceX96, int24 tick) = pool.slot0();
         console.log("slot0.sqrtPriceX96: %s", sqrtPriceX96);
         console.log("slot0.tick: %s", tick);
+
+
     }
 
 
