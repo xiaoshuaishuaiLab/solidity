@@ -28,3 +28,12 @@ https://github.com/abdk-consulting/audits/blob/main/uniswap/ABDK_UniswapV3_v_1.p
 
 看审计报告可以学到一些东西
 
+# 质押策略 
+https://atise.medium.com/liquidity-provider-strategies-for-uniswap-v3-an-introduction-42970cf9df4
+
+
+# install
+```
+forge install  paulrberg/prb-math
+```
+

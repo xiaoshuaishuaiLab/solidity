@@ -8,3 +8,6 @@
 [submodule "uniswapV3/lib/abdk-libraries-solidity"]
 	path = uniswapV3/lib/abdk-libraries-solidity
 	url = https://github.com/abdk-consulting/abdk-libraries-solidity
+[submodule "uniswapV3/lib/prb-math"]
+	path = uniswapV3/lib/prb-math
+	url = https://github.com/paulrberg/prb-math

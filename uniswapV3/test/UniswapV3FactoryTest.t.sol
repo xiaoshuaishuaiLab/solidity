@@ -24,7 +24,7 @@ contract UniswapV3FactoryTest is Test{
         address poolAddress = factory.createPool(address(weth), address(usdt), 500);
         console.log("pool address: ", poolAddress);
         UniswapV3Pool pool = UniswapV3Pool(poolAddress);
-
+        // 初始价格2500
         pool.initialize(Math.sqrtP(2500));
         (uint160 sqrtPriceX96, int24 tick) = pool.slot0();
         console.log("slot0.sqrtPriceX96: %s", sqrtPriceX96);

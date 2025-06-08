@@ -24,7 +24,8 @@ contract UniswapV3Factory is IUniswapV3PoolDeployer {
         // Implementation of pool creation logic goes here
         // This is a placeholder implementation
         bytes32 salt = keccak256(abi.encodePacked(tokenX, tokenY, fee));
-        IUniswapV3Pool v3Pool = new UniswapV3Pool{salt: salt}(
+//        CREATE2 指令的好处是，只要合约的 bytecode 及 salt 不变，那么创建出来的地址也将不变。
+        IUniswapV3Pool v3Pool = new UniswapV3Pool{salt: salt}(address (this),
             tokenX,
             tokenY,
             fee, feeAmountTickSpacing[fee]

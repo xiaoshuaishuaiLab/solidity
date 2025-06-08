@@ -1,3 +1,5 @@
 forge-std/=lib/forge-std/src/
 openzeppelin/=lib/openzeppelin-contracts/
 abdk-math/=lib/abdk-libraries-solidity/
+prb-math/=lib/prb-math/src/
+
