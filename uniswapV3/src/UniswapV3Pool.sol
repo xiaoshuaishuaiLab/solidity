@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.20;
 
 import "./interfaces/IUniswapV3Pool.sol";
 import "./lib/TickMath.sol";
 import "openzeppelin/contracts/token/ERC20/IERC20.sol";
+import  "./lib/Position.sol";
 
 
 contract UniswapV3Pool is IUniswapV3Pool {
@@ -18,6 +19,7 @@ contract UniswapV3Pool is IUniswapV3Pool {
     uint24 public  immutable  tickSpacing;
 
     Slot0 public slot0;
+    mapping(bytes32 => Position.Info) public positions;
 
     constructor(address _factory,address _token0,
         address _token1,
@@ -30,12 +32,19 @@ contract UniswapV3Pool is IUniswapV3Pool {
 
     }
 
-
-
     struct Slot0 {
         uint160 sqrtPriceX96;
         int24 tick;
     }
+
+    struct ModifyPositionParams {
+        address owner;
+        int24 lowerTick;
+        int24 upperTick;
+        int128 liquidityDelta;
+    }
+
+
 
     function initialize(uint160 startSqrtPriceX96) external {
         require(slot0.sqrtPriceX96 == 0, 'AI');
@@ -64,6 +73,13 @@ contract UniswapV3Pool is IUniswapV3Pool {
         if(amount == 0) revert ZeroLiquidity();
 
 
+    }
+
+    function _modifyPosition(ModifyPositionParams memory params) internal returns (Position.Info info,uint256 amount0, uint256 amount1) {
+        // 这里可以添加逻辑来处理流动性头寸的修改
+        // 比如增加或减少流动性，更新头寸状态等
+
+        return (0, 0);
     }
 
 
