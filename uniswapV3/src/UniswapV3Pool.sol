@@ -163,8 +163,10 @@ contract UniswapV3Pool is IUniswapV3Pool {
         if (flippedUpper) {
             tickBitmap.flipTick(params.upperTick, int24(tickSpacing));
         }
+        (uint256 feeGrowthInside0X128, uint256 feeGrowthInside1X128) = ticks.getFeeGrowthInside(params.lowerTick, params.upperTick,slot0_.tick, feeGrowthGlobal0X128_, feeGrowthGlobal1X128_);
 
-        position.update(params.liquidityDelta, 0, 0);
+
+        position.update(params.liquidityDelta, feeGrowthInside0X128, feeGrowthInside1X128);
 
 
 
