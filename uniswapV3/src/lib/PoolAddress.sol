@@ -24,7 +24,7 @@ library PoolAddress {
                 uint256(
                     keccak256(
                         abi.encodePacked(
-                            hex"ff",
+                            bytes1(0xff),
                             factory,
                             keccak256(abi.encodePacked(token0, token1, fee)),
                             keccak256(type(UniswapV3Pool).creationCode)

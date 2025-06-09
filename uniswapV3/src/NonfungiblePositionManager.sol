@@ -7,6 +7,8 @@ import "./interfaces/IUniswapV3MintCallback.sol";
 import "./lib/LiquidityMath.sol";
 import "./lib/PoolAddress.sol";
 import "openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "forge-std/Test.sol";
+
 
 contract NonfungiblePositionManager is ERC721, IUniswapV3MintCallback {
     uint256 private _nextTokenId;
@@ -37,6 +39,7 @@ contract NonfungiblePositionManager is ERC721, IUniswapV3MintCallback {
 
     function mint(MintParams calldata params) external returns (uint256 tokenId) {
         UniswapV3Pool pool = getPool(params);
+        console.log("pool address: %s", address(pool));
         (uint160 sqrtPriceX96,) = pool.slot0();
 
         uint128 liquidity = LiquidityMath.getLiquidityForAmounts(
@@ -46,6 +49,7 @@ contract NonfungiblePositionManager is ERC721, IUniswapV3MintCallback {
             params.amount0Desired,
             params.amount1Desired
         );
+
 //        mint(address recipient, int24 lowerTick, int24 upperTick,uint128 amount,bytes calldata data)
 
         (uint256 amount0, uint256 amount1) = pool.mint(address(this), params.lowerTick, params.upperTick, liquidity, abi.encode(
@@ -72,10 +76,10 @@ contract NonfungiblePositionManager is ERC721, IUniswapV3MintCallback {
         if (callbackData.token0 != address(0) && amount0 > 0) {
             IERC20(callbackData.token0).transferFrom(callbackData.payer, msg.sender, amount0);
         }
-
         if (callbackData.token1 != address(0) && amount1 > 0) {
             IERC20(callbackData.token1).transferFrom(callbackData.payer, msg.sender, amount1);
         }
+
     }
 
     function getPool(MintParams calldata params) internal view returns (UniswapV3Pool pool) {

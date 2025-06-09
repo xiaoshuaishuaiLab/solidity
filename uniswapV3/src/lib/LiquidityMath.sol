@@ -3,6 +3,8 @@ pragma solidity ^0.8.20;
 
 import "./FixedPoint96.sol";
 import "prb-math/Common.sol";
+import {console} from "../../lib/forge-std/src/console.sol";
+import "forge-std/Test.sol";
 
 library LiquidityMath {
 
@@ -49,6 +51,16 @@ library LiquidityMath {
         uint256 amount0,
         uint256 amount1
     ) internal pure returns (uint128 liquidity) {
+        console.log(
+            "sqrtPriceX96: %s, sqrtPriceAX96: %s, sqrtPriceBX96: %s",
+            sqrtPriceX96,
+            sqrtPriceAX96,
+            sqrtPriceBX96);
+        console.log(
+            "amount0: %s, amount1: %s",
+            amount0,
+            amount1
+        );
         if (sqrtPriceAX96 > sqrtPriceBX96)
             (sqrtPriceAX96, sqrtPriceBX96) = (sqrtPriceBX96, sqrtPriceAX96);
 
@@ -79,4 +91,17 @@ library LiquidityMath {
             );
         }
     }
+
+    function addLiquidity(uint128 x, int128 y)
+    internal
+    pure
+    returns (uint128 z)
+    {
+        if (y < 0) {
+            z = x - uint128(-y);
+        } else {
+            z = x + uint128(y);
+        }
+    }
 }
+

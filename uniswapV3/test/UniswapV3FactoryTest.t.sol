@@ -11,12 +11,14 @@ import "../src/lib/Math.sol";
 contract UniswapV3FactoryTest is Test{
     ERC20Mintable weth;
     ERC20Mintable usdt;
-
     UniswapV3Factory factory;
+
     function setUp() public  {
         weth = new ERC20Mintable("Wrapped Ether","WETH");
         usdt = new ERC20Mintable("USDT","USDT");
         factory = new UniswapV3Factory();
+        console.log("factory",address (factory));
+
     }
 
     // forge test  --match-test testCreatePool -vv
