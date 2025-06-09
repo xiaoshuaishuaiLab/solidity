@@ -5,17 +5,21 @@ import "./interfaces/IUniswapV3Pool.sol";
 import "./lib/TickMath.sol";
 import "openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./lib/Position.sol";
+import "./lib/Tick.sol";
 import "./lib/Math.sol";
 import "./interfaces/IUniswapV3MintCallback.sol";
 import "./lib/PoolAddress.sol";
 import "./interfaces/IUniswapV3PoolDeployer.sol";
-
-
+import "./lib/TickBitmap.sol";
 
 
 contract UniswapV3Pool is IUniswapV3Pool {
     using Position for Position.Info;
     using Position for mapping(bytes32 => Position.Info);
+    using Tick for Tick.Info;
+    using Tick for mapping(int24 => Tick.Info);
+    using TickBitmap for mapping(int16 => uint256);
+
     error InvalidTickRange();
     error ZeroLiquidity();
 
@@ -28,6 +32,12 @@ contract UniswapV3Pool is IUniswapV3Pool {
 
     Slot0 public slot0;
     mapping(bytes32 => Position.Info) public positions;
+    mapping(int24 => Tick.Info) public ticks;
+    mapping(int16 => uint256) public tickBitmap;
+    // 当前池子的token0手续费总和
+    uint256 public feeGrowthGlobal0X128;
+    // 当前池子的token1手续费总和
+    uint256 public feeGrowthGlobal1X128;
 
     /**
     当前tick拥有的流动性，可以理解为当前tick的流动性头寸总和。
@@ -37,7 +47,7 @@ contract UniswapV3Pool is IUniswapV3Pool {
 
 
     constructor() {
-        (factory,token0,token1,tickSpacing,fee)= IUniswapV3PoolDeployer(msg.sender).parameters();
+        (factory, token0, token1, tickSpacing, fee) = IUniswapV3PoolDeployer(msg.sender).parameters();
     }
 
     struct Slot0 {
@@ -90,8 +100,8 @@ contract UniswapV3Pool is IUniswapV3Pool {
         amount0 = uint256(amount0In);
         amount1 = uint256(amount1In);
 
-        uint256 balance0Before ;
-        uint256 balance1Before ;
+        uint256 balance0Before;
+        uint256 balance1Before;
         if (amount0 > 0) {
             balance0Before = balance0();
         }
@@ -115,16 +125,49 @@ contract UniswapV3Pool is IUniswapV3Pool {
     }
 
 
-
-
     function _modifyPosition(ModifyPositionParams memory params) internal returns (Position.Info storage position, int256 amount0, int256 amount1) {
         // 这里可以添加逻辑来处理流动性头寸的修改
         // 比如增加或减少流动性，更新头寸状态等
         position = positions.get(params.owner, params.lowerTick, params.upperTick);
-        position.update(params.liquidityDelta, 0, 0);
+
 
         // gas 费用优化：将 slot0 结构体的值存储在一个局部变量中，避免多次读取存储
         Slot0 memory slot0_ = slot0;
+
+
+        uint256 feeGrowthGlobal0X128_ = feeGrowthGlobal0X128;
+        uint256 feeGrowthGlobal1X128_ = feeGrowthGlobal1X128;
+
+        bool flippedLower = ticks.update(
+            params.lowerTick,
+            slot0_.tick,
+            int128(params.liquidityDelta),
+            feeGrowthGlobal0X128_,
+            feeGrowthGlobal1X128_,
+            false
+        );
+
+        bool flippedUpper = ticks.update(
+            params.upperTick,
+            slot0_.tick,
+            int128(params.liquidityDelta),
+            feeGrowthGlobal0X128_,
+            feeGrowthGlobal1X128_,
+            true
+        );
+
+        if (flippedLower) {
+            tickBitmap.flipTick(params.lowerTick, int24(tickSpacing));
+        }
+
+        if (flippedUpper) {
+            tickBitmap.flipTick(params.upperTick, int24(tickSpacing));
+        }
+
+        position.update(params.liquidityDelta, 0, 0);
+
+
+
 
         if (slot0_.tick < params.lowerTick) {
             amount0 = Math.calcAmount0Delta(

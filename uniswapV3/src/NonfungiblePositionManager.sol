@@ -21,6 +21,16 @@ contract NonfungiblePositionManager is ERC721, IUniswapV3MintCallback {
         factory = _factory;
     }
 
+    struct TokenPosition {
+        address pool;
+        int24 lowerTick;
+        int24 upperTick;
+    }
+
+    mapping(uint256 => TokenPosition) public tokenPositions;
+
+
+
     struct MintParams {
         address recipient;
         address token0;
@@ -64,6 +74,11 @@ contract NonfungiblePositionManager is ERC721, IUniswapV3MintCallback {
         tokenId = _nextTokenId++;
         _mint(msg.sender, tokenId);
 
+        tokenPositions[tokenId] = TokenPosition({
+            pool: address(pool),
+            lowerTick: params.lowerTick,
+            upperTick: params.upperTick
+        });
     }
 
 
