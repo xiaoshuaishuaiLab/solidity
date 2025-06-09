@@ -61,7 +61,8 @@ contract NonfungiblePositionManagerTest {
 
     }
 
-    // forge test  --match-test testMint -vvvv
+    // forge test  --match-test testMint -vvvvv
+    // forge test  --debug --match-test testMint
     function testMint() public {
         // int24 tickLower = ; // 72244
         // int24 tickUpper = 78244 + 60 * 100; // 84,244
@@ -71,8 +72,8 @@ contract NonfungiblePositionManagerTest {
             token0: address(usdt),
             token1: address(weth),
             fee: fee,
-            lowerTick: curTick - 120 * 100,
-            upperTick: curTick + 120 * 100,
+            lowerTick: (curTick/60) * 60  - 120 * 100,
+            upperTick: (curTick/60) * 60 + 120 * 100,
             amount0Desired: 25000 ether,
             amount1Desired: 10 ether,
             amount0Min: 0,

@@ -11,9 +11,19 @@ import "./interfaces/IUniswapV3MintCallback.sol";
 import "./lib/PoolAddress.sol";
 import "./interfaces/IUniswapV3PoolDeployer.sol";
 import "./lib/TickBitmap.sol";
+import "forge-std/Test.sol";
 
 
 contract UniswapV3Pool is IUniswapV3Pool {
+    event Mint(
+        address sender,
+        address indexed owner,
+        int24 indexed tickLower,
+        int24 indexed tickUpper,
+        uint128 amount,
+        uint256 amount0,
+        uint256 amount1
+    );
     using Position for Position.Info;
     using Position for mapping(bytes32 => Position.Info);
     using Tick for Tick.Info;
@@ -80,12 +90,13 @@ contract UniswapV3Pool is IUniswapV3Pool {
     兼容 ERC721：NFT 头寸的转让、授权等都由 NonfungiblePositionManager 统一处理，符合 ERC721 标准。
     所以，mint 时 recipient 固定为 NonfungiblePositionManager 合约地址，实际的“归属权”由 NFT 的持有者决定。
     **/
-    function mint(address recipient, int24 lowerTick, int24 upperTick, uint128 amount, bytes calldata data) external returns (uint256 amount0, uint256 amount1) {
-        if (
-            lowerTick >= upperTick ||
-            lowerTick < TickMath.MIN_TICK ||
-            upperTick > TickMath.MAX_TICK
-        ) revert InvalidTickRange();
+    function mint(address recipient, int24 lowerTick, int24 upperTick, uint128 amount, bytes calldata data) 
+    external returns (uint256 amount0, uint256 amount1) {
+         if (
+             lowerTick >= upperTick ||
+             lowerTick < TickMath.MIN_TICK ||
+             upperTick > TickMath.MAX_TICK
+         ) revert InvalidTickRange();
 
         if (amount == 0) revert ZeroLiquidity();
 
@@ -97,6 +108,7 @@ contract UniswapV3Pool is IUniswapV3Pool {
                 liquidityDelta: int128(amount)
             })
         );
+        console.log("upperTick: %s", upperTick);
         amount0 = uint256(amount0In);
         amount1 = uint256(amount1In);
 
@@ -122,6 +134,17 @@ contract UniswapV3Pool is IUniswapV3Pool {
             revert("Mint: token1 balance mismatch");
         }
 
+        emit Mint(
+            msg.sender,
+            recipient,
+            lowerTick,
+            upperTick,
+            amount,
+            amount0,
+            amount1
+        );
+
+
     }
 
 
@@ -129,7 +152,6 @@ contract UniswapV3Pool is IUniswapV3Pool {
         // 这里可以添加逻辑来处理流动性头寸的修改
         // 比如增加或减少流动性，更新头寸状态等
         position = positions.get(params.owner, params.lowerTick, params.upperTick);
-
 
         // gas 费用优化：将 slot0 结构体的值存储在一个局部变量中，避免多次读取存储
         Slot0 memory slot0_ = slot0;
@@ -167,9 +189,6 @@ contract UniswapV3Pool is IUniswapV3Pool {
 
 
         position.update(params.liquidityDelta, feeGrowthInside0X128, feeGrowthInside1X128);
-
-
-
 
         if (slot0_.tick < params.lowerTick) {
             amount0 = Math.calcAmount0Delta(

@@ -31,8 +31,9 @@ library Position {
         uint256 feeGrowthInside0X128,
         uint256 feeGrowthInside1X128
     ) internal {
-        // 这个代码是uniswap v3里，feeGrowthGlobal0X128的累加逻辑，即每一份流动性对应的手续费总和 * FixedPoint128.Q128,所以下面的tokensOwed0的计算是手续费差值*自己的liquidity/FixedPoint128.Q128
-//        feeGrowthGlobal0X128 += FullMath.mulDiv(paid0 - fees0, FixedPoint128.Q128, _liquidity);
+        // 这个代码是uniswap v3里，feeGrowthGlobal0X128的累加逻辑，即每一份流动性对应的手续费总和 * FixedPoint128.Q128,
+        // 所以下面的tokensOwed0的计算是手续费差值*自己的liquidity/FixedPoint128.Q128
+        // feeGrowthGlobal0X128 += FullMath.mulDiv(paid0 - fees0, FixedPoint128.Q128, _liquidity);
 
        uint128 tokensOwed0 = uint128(
            mulDiv(
