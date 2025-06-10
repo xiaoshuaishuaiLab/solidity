@@ -56,9 +56,6 @@ contract UniswapV3Pool is IUniswapV3Pool {
     uint128 public liquidity;
 
 
-    constructor() {
-        (factory, token0, token1, tickSpacing, fee) = IUniswapV3PoolDeployer(msg.sender).parameters();
-    }
 
     struct Slot0 {
         uint160 sqrtPriceX96;
@@ -72,6 +69,88 @@ contract UniswapV3Pool is IUniswapV3Pool {
         int128 liquidityDelta;
     }
 
+    struct SwapState {
+        // 本次 swap 剩余待交换的输入或输出数量。
+        uint256 amountSpecifiedRemaining;
+        // 已累计计算出的输出或输入数量（取决于 swap 方向）。
+        uint256 amountCalculated;
+        // 当前池子的价格（以 Q96 定点的平方根价格表示）。
+        uint160 sqrtPriceX96;
+        // 当前价格对应的 tick 索引。
+        int24 tick;
+        // 当前全局手续费增长值（Q128 定点），用于计算手续费分配。
+        uint256 feeGrowthGlobalX128;
+        // 当前价格区间内的有效流动性。
+        uint128 liquidity;
+    }
+
+    struct StepState {
+        uint160 sqrtPriceStartX96; // 本次 swap 步骤开始时的价格（Q96 定点的平方根价格）
+        int24 nextTick;            // 本次 swap 步骤中即将遇到的下一个 tick 索引
+        bool initialized;          // 下一个 tick 是否已初始化（即该 tick 是否有流动性变化）
+        uint160 sqrtPriceNextX96;  // 下一个 tick 对应的价格（Q96 定点的平方根价格）
+        uint256 amountIn;          // 本次 swap 步骤实际消耗的输入代币数量
+        uint256 amountOut;         // 本次 swap 步骤实际获得的输出代币数量
+        uint256 feeAmount;         // 本次 swap 步骤产生的手续费数量
+    }
+    // recipient 兑换人，zeroForOne = true ,用token0买token1，价格下降，否则则是token1到token0，amountSpecified 本次交换的输入或输出数量（取决于调用方式）
+    //sqrtPriceLimitX96，本次交换允许到达的价格上限/下限（以 sqrt(P) 形式，Q96 定点数），用于限制滑点。
+    function swap(
+        address recipient,
+        bool zeroForOne,
+        uint256 amountSpecified,
+        uint160 sqrtPriceLimitX96,
+        bytes calldata data
+    ) public returns (int256 amount0, int256 amount1) {
+        Slot0 memory slot_=slot0;
+        uint128  liquidity_ = liquidity;
+        //        这段校验的作用是：确保 swap 操作时用户设置的价格限制 sqrtPriceLimitX96 合理且在允许范围内，否则就回退（revert）。
+        //    具体解释如下：
+        //        zeroForOne 为 true 时（即用 token0 换 token1，价格向下走）：
+        //        sqrtPriceLimitX96 必须小于当前价格 slot0_.sqrtPriceX96（因为价格只能往下走），且不能小于最小允许值 TickMath.MIN_SQRT_RATIO。
+        //        zeroForOne 为 false 时（即用 token1 换 token0，价格向上走）：
+        //        sqrtPriceLimitX96 必须大于当前价格 slot0_.sqrtPriceX96（因为价格只能往上走），且不能大于最大允许值 TickMath.MAX_SQRT_RATIO
+        if(zeroForOne) {
+            if (sqrtPriceLimitX96 > slot_.sqrtPriceX96 || sqrtPriceLimitX96 < TickMath.MIN_SQRT_RATIO) {
+                revert("Invalid sqrtPriceLimitX96 for zeroForOne swap");
+            }
+        } else {
+            if (sqrtPriceLimitX96 < slot_.sqrtPriceX96 || sqrtPriceLimitX96 > TickMath.MAX_SQRT_RATIO) {
+                revert("Invalid sqrtPriceLimitX96 for oneForZero swap");
+            }
+        }
+
+        SwapState memory state = SwapState({
+            amountSpecifiedRemaining: amountSpecified,
+            amountCalculated: 0,
+            sqrtPriceX96: slot_.sqrtPriceX96,
+            tick: slot_.tick,
+            feeGrowthGlobalX128: zeroForOne ? feeGrowthGlobal0X128 : feeGrowthGlobal1X128,
+            liquidity: liquidity_
+        });
+
+        while(state.amountSpecifiedRemaining > 0 && state.sqrtPriceX96 != sqrtPriceLimitX96) {
+            StepState memory step;
+            step.sqrtPriceStartX96 = state.sqrtPriceX96;
+
+            (step.nextTick, step.initialized) = tickBitmap.nextInitializedTickWithinOneWord(
+                state.tick,
+                int24(tickSpacing),
+                zeroForOne
+            );
+
+            step.sqrtPriceNextX96 = TickMath.getSqrtRatioAtTick(step.nextTick);
+
+
+
+        }
+    }
+
+
+
+    constructor() {
+        (factory, token0, token1, tickSpacing, fee) = IUniswapV3PoolDeployer(msg.sender).parameters();
+    }
 
     function initialize(uint160 startSqrtPriceX96) external {
         require(slot0.sqrtPriceX96 == 0, 'AI');
@@ -143,9 +222,16 @@ contract UniswapV3Pool is IUniswapV3Pool {
             amount0,
             amount1
         );
-
-
     }
+
+
+
+
+
+
+
+
+
 
 
     function _modifyPosition(ModifyPositionParams memory params) internal returns (Position.Info storage position, int256 amount0, int256 amount1) {
