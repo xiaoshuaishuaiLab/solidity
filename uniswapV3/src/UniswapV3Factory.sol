@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "./UniswapV3Pool.sol";
 import "./interfaces/IUniswapV3PoolDeployer.sol";
 import "./interfaces/IUniswapV3Pool.sol";
-import {console} from "../lib/forge-std/src/console.sol";
+import "forge-std/console2.sol";
 
 import "./lib/PoolAddress.sol";
 

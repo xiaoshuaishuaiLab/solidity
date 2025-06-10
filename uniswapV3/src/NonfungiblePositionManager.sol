@@ -7,7 +7,7 @@ import "./interfaces/IUniswapV3MintCallback.sol";
 import "./lib/LiquidityMath.sol";
 import "./lib/PoolAddress.sol";
 import "openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "forge-std/Test.sol";
+import "forge-std/console2.sol";
 
 
 contract NonfungiblePositionManager is ERC721, IUniswapV3MintCallback {
@@ -49,7 +49,7 @@ contract NonfungiblePositionManager is ERC721, IUniswapV3MintCallback {
 
     function mint(MintParams calldata params) external returns (uint256 tokenId) {
         UniswapV3Pool pool = getPool(params);
-        console.log("pool address: %s", address(pool));
+        console2.log("pool address: %s", address(pool));
         (uint160 sqrtPriceX96,) = pool.slot0();
 
         uint128 liquidity = LiquidityMath.getLiquidityForAmounts(

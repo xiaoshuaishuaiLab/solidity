@@ -58,6 +58,7 @@ library TickBitmap {
     根据查找方向，构造掩码，筛选出 word 内已初始化的 tick。
     如果有，返回最近的已初始化 tick 的索引和 true；否则返回边界 tick 和 false。
     这样可以极大提升 tick 查找效率，节省 gas。
+    todo 画个图解释下
     **/
     function nextInitializedTickWithinOneWord(
         mapping(int16 => uint256) storage self,

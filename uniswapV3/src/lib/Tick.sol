@@ -100,10 +100,28 @@ library Tick {
         }
 
         tickInfo.liquidityGross = liquidityAfter;
-//        tickInfo.liquidityNet = upper
-//            ? int128(int256(tickInfo.liquidityNet) - liquidityDelta)
-//            : int128(int256(tickInfo.liquidityNet) + liquidityDelta);
+        tickInfo.liquidityNet = upper
+            ? int128(int256(tickInfo.liquidityNet) - liquidityDelta)
+            : int128(int256(tickInfo.liquidityNet) + liquidityDelta);
     }
+
+
+    function cross(
+        mapping(int24 => Tick.Info) storage self,
+        int24 tick,
+        uint256 feeGrowthGlobal0X128,
+        uint256 feeGrowthGlobal1X128
+    ) internal returns (int128 liquidityDelta) {
+        Tick.Info storage info = self[tick];
+        info.feeGrowthOutside0X128 =
+            feeGrowthGlobal0X128 -
+            info.feeGrowthOutside0X128;
+        info.feeGrowthOutside1X128 =
+            feeGrowthGlobal1X128 -
+            info.feeGrowthOutside1X128;
+        liquidityDelta = info.liquidityNet;
+    }
+
 
 
 
