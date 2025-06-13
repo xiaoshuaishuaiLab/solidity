@@ -58,7 +58,6 @@ library TickBitmap {
     根据查找方向，构造掩码，筛选出 word 内已初始化的 tick。
     如果有，返回最近的已初始化 tick 的索引和 true；否则返回边界 tick 和 false。
     这样可以极大提升 tick 查找效率，节省 gas。
-    todo 画个图解释下
     **/
     function nextInitializedTickWithinOneWord(
         mapping(int16 => uint256) storage self,
@@ -69,13 +68,17 @@ library TickBitmap {
         int24 compressed = tick / tickSpacing;
         if (tick < 0 && tick % tickSpacing != 0) compressed--; // round towards negative infinity
 
+        // 如果 lte 为 true，表示查找小于等于当前 tick 的下一个已初始化 tick
         if (lte) {
             (int16 wordPos, uint8 bitPos) = position(compressed);
             // all the 1s at or to the right of the current bitPos
+            // 假如 bitPos = 3, 那么 mask = 0000 0000 0000 0000 0000 0000 0000 1111
             uint256 mask = (1 << bitPos) - 1 + (1 << bitPos);
+            // 取出当前 word 中与 mask 相与的部分
             uint256 masked = self[wordPos] & mask;
 
             // if there are no initialized ticks to the right of or at the current tick, return rightmost in the word
+            // 如果当前 word 中没有已初始化的 tick，返回当前 word 中最右侧的 tick
             initialized = masked != 0;
             // overflow/underflow is possible, but prevented externally by limiting both tickSpacing and tick
             next = initialized
