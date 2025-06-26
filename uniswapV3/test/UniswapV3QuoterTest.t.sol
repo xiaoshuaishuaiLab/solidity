@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.10;
+pragma solidity ^0.8.14;
 
 import "forge-std/Test.sol";
 import "./ERC20Mintable.sol";
@@ -7,17 +7,26 @@ import "../src/UniswapV3Factory.sol";
 import "../src/UniswapV3Pool.sol";
 import "../src/lib/Math.sol";
 import "../src/NonfungiblePositionManager.sol";
+import "../src/UniswapV3Quoter.sol";
+
 import "prb-math/Common.sol";
 
 
+contract UniswapV3QuoterTest is Test{
 
-contract NonfungiblePositionManagerTest {
 
     ERC20Mintable weth;
     ERC20Mintable usdt;
+    ERC20Mintable uni;
+
     UniswapV3Factory factory;
     UniswapV3Pool pool;
     NonfungiblePositionManager ntfManager;
+//    ERC20Mintable uni;
+    UniswapV3Quoter quoter;
+
+
+
     uint24 constant fee = 3000;
     uint256 constant WETH_BALANCE = 100 ether; // -887272
     uint256 constant USDT_BALANCE = 250000 ether; // -887272
@@ -33,7 +42,7 @@ contract NonfungiblePositionManagerTest {
         if(address (weth) < address (usdt)) {
             console.log("true weth < usdt");
         } else {
-            console.log("false weth < usdt");
+            console.log("false weth > usdt");
         }
 
         factory = new UniswapV3Factory();
@@ -57,14 +66,6 @@ contract NonfungiblePositionManagerTest {
         weth.approve(address(ntfManager), type(uint256).max);
         usdt.approve(address(ntfManager), type(uint256).max);
 
-    }
-
-    // forge test  --match-test testMint -vvvvv
-    // forge test  --debug --match-test testMint
-    function testMint() public {
-        // int24 tickLower = ; // 72244
-        // int24 tickUpper = 78244 + 60 * 100; // 84,244
-
         NonfungiblePositionManager.MintParams memory param = NonfungiblePositionManager.MintParams({
             recipient:address(this),
             token0: address(usdt),
@@ -77,14 +78,25 @@ contract NonfungiblePositionManagerTest {
             amount0Min: 0,
             amount1Min: 0
         });
-        console.log("begin mint");
-        uint256 tokenId = ntfManager.mint(param);
-        console.log("tokenId: ", tokenId);
-        console.log("wet balanceOf: ", weth.balanceOf(address(this)));
-        console.log("usdt balanceOf: ", usdt.balanceOf(address(this)));
-        // todo assert()
-        console.log("pool.liquidity: ", pool.liquidity());
 
+        uint256 tokenId = ntfManager.mint(param);
+        quoter = new UniswapV3Quoter(address(factory));
+
+
+    }
+   //  forge test  --match-test testQuoteUSDTforETH -vvvvv
+    function testQuoteUSDTForETH() public {
+        (uint256 amountOut, uint160 sqrtPriceX96After, int24 tickAfter) = quoter
+            .quoteSingle(
+            UniswapV3Quoter.QuoteSingleParams({
+                tokenIn: address(weth),
+                tokenOut: address(usdt),
+                fee: fee,
+                amountIn: 1 ether,
+                sqrtPriceLimitX96: Math.sqrtPFrac(1,2000)
+            })
+        );
+        assertEq(amountOut,2385181619683654192399);
     }
 
 

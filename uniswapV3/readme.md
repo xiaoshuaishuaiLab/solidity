@@ -1,6 +1,15 @@
 # about
 在学习了solidity基础，uniswap V3后，以学习目的，实现的uniswap V3的逻辑
 
+## 完成内容
+- [x] 创建流动性池 uniswapV3/src/UniswapV3Factory#createPool
+- [x] 质押流动性 uniswapV3/src/NonfungiblePositionManager#mint
+- [x] 交换代币 uniswapV3/src/UniswapV3Pool#swap
+- []  合约报价
+- []  移除流动性
+- []  取回质押代币
+
+
 
 # 参考资料
 

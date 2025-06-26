@@ -75,6 +75,12 @@ contract UniswapV3Pool is IUniswapV3Pool {
     struct Slot0 {
         uint160 sqrtPriceX96;
         int24 tick;
+        // Most recent observation index
+//        uint16 observationIndex;
+        // Maximum number of observations
+//        uint16 observationCardinality;
+        // Next maximum number of observations
+//        uint16 observationCardinalityNext;
     }
 
     struct ModifyPositionParams {
