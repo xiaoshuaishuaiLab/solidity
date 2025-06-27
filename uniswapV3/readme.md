@@ -5,14 +5,16 @@
 - [x] 创建流动性池 uniswapV3/src/UniswapV3Factory#createPool
 - [x] 质押流动性 uniswapV3/src/NonfungiblePositionManager#mint
 - [x] 交换代币 uniswapV3/src/UniswapV3Pool#swap
-- []  合约报价
+- [x]  合约报价
 - []  移除流动性
+- []  pair合约
 - []  取回质押代币
+- []  前端界面 (from https://github.com/Jeiwan/uniswapv3-book)
+- []  部署
 
 
 
 # 参考资料
-
 梁培利老师的视频，深入浅出的讲解了uniswap V2到v3的演进.
 https://www.bilibili.com/video/BV1b3o4YzEnF
 
