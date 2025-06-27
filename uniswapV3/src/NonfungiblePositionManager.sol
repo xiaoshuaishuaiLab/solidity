@@ -50,7 +50,7 @@ contract NonfungiblePositionManager is ERC721, IUniswapV3MintCallback {
     function mint(MintParams calldata params) external returns (uint256 tokenId) {
         UniswapV3Pool pool = getPool(params);
         console2.log("pool address: %s", address(pool));
-        (uint160 sqrtPriceX96,) = pool.slot0();
+        (uint160 sqrtPriceX96,,,,) = pool.slot0();
 
         uint128 liquidity = LiquidityMath.getLiquidityForAmounts(
             sqrtPriceX96,

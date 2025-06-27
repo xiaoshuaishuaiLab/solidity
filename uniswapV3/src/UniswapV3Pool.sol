@@ -7,6 +7,7 @@ import "openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./lib/Position.sol";
 import "./lib/Tick.sol";
 import "./lib/Math.sol";
+import "./lib/Oracle.sol";
 import "./interfaces/IUniswapV3MintCallback.sol";
 import "./lib/PoolAddress.sol";
 import "./interfaces/IUniswapV3PoolDeployer.sol";
@@ -37,11 +38,18 @@ contract UniswapV3Pool is IUniswapV3Pool {
         uint128 liquidity,
         int24 tick
     );
+    // topic0 = "0xac49e518f90a358f652e4400164f05a5d8f7e35e7747279bc3a93dbf584e125a";
+    event IncreaseObservationCardinalityNext(
+        uint16 observationCardinalityNextOld,
+        uint16 observationCardinalityNextNew
+    );
     using Position for Position.Info;
     using Position for mapping(bytes32 => Position.Info);
     using Tick for Tick.Info;
     using Tick for mapping(int24 => Tick.Info);
     using TickBitmap for mapping(int16 => uint256);
+    using Oracle for Oracle.Observation[65535];
+
 
     error InvalidTickRange();
     error ZeroLiquidity();
@@ -64,6 +72,7 @@ contract UniswapV3Pool is IUniswapV3Pool {
     uint256 public feeGrowthGlobal0X128;
     // 当前池子的token1手续费总和
     uint256 public feeGrowthGlobal1X128;
+    Oracle.Observation[65535] public observations;
 
     /**
     当前tick拥有的流动性，可以理解为当前tick的流动性头寸总和。
@@ -71,16 +80,16 @@ contract UniswapV3Pool is IUniswapV3Pool {
     **/
     uint128 public liquidity;
 
-
     struct Slot0 {
         uint160 sqrtPriceX96;
         int24 tick;
-        // Most recent observation index
-//        uint16 observationIndex;
-        // Maximum number of observations
-//        uint16 observationCardinality;
-        // Next maximum number of observations
-//        uint16 observationCardinalityNext;
+        // Most recent observation index  最新观测点的索引
+        uint16 observationIndex;
+        // Maximum number of observations  当前可用的观测点数量（历史窗口长度）。
+        uint16 observationCardinality;
+        // Next maximum number of observations  计划扩容到的观测点数量
+        //  看了下 这个 USDC/ETH 交易对的值才是723 https://etherscan.io/address/0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640#events
+        uint16 observationCardinalityNext;
     }
 
     struct ModifyPositionParams {
@@ -114,6 +123,27 @@ contract UniswapV3Pool is IUniswapV3Pool {
         uint256 amountOut;         // 本次 swap 步骤实际获得的输出代币数量
         uint256 feeAmount;         // 本次 swap 步骤产生的手续费数量
     }
+
+
+    constructor() {
+        (factory, token0, token1, tickSpacing, fee) = IUniswapV3PoolDeployer(msg.sender).parameters();
+    }
+
+    function initialize(uint160 startSqrtPriceX96) external {
+        require(slot0.sqrtPriceX96 == 0, 'AI');
+
+
+        int24 tick = TickMath.getTickAtSqrtRatio(startSqrtPriceX96);
+        (uint16 cardinality, uint16 cardinalityNext) = observations.initialize(
+            _blockTimestamp()
+        );
+        slot0 = Slot0(startSqrtPriceX96, tick,0,cardinality,cardinalityNext);
+
+    }
+
+
+
+
     // recipient 兑换人，zeroForOne = true ,用token0买token1，价格下降，否则则是token1到token0，amountSpecified 本次交换的输入或输出数量（取决于调用方式）
     //sqrtPriceLimitX96，本次交换允许到达的价格上限/下限（以 sqrt(P) 形式，Q96 定点数），用于限制滑点。
     function swap(
@@ -233,24 +263,27 @@ contract UniswapV3Pool is IUniswapV3Pool {
 
         // tick 变了
         if (state.tick != slot0_.tick) {
-            // todo 价格预言机
-//            (
-//                uint16 observationIndex,
-//                uint16 observationCardinality
-//            ) = observations.write(
-//                slot0_.observationIndex,
-//                _blockTimestamp(),
-//                slot0_.tick,
-//                slot0_.observationCardinality,
-//                slot0_.observationCardinalityNext
-//            );
+            (
+                uint16 observationIndex,
+                uint16 observationCardinality
+            ) = observations.write(
+                slot0_.observationIndex,
+                _blockTimestamp(),
+                slot0_.tick,
+                slot0_.observationCardinality,
+                slot0_.observationCardinalityNext
+            );
 
             (
                 slot0.sqrtPriceX96,
-                slot0.tick
+                slot0.tick,
+                slot0.observationIndex,
+                slot0.observationCardinality
             ) = (
                 state.sqrtPriceX96,
-                state.tick
+                state.tick,
+                observationIndex,
+                observationCardinality
             );
         } else {
             slot0.sqrtPriceX96 = state.sqrtPriceX96;
@@ -306,19 +339,6 @@ contract UniswapV3Pool is IUniswapV3Pool {
         );
     }
 
-
-
-    constructor() {
-        (factory, token0, token1, tickSpacing, fee) = IUniswapV3PoolDeployer(msg.sender).parameters();
-    }
-
-    function initialize(uint160 startSqrtPriceX96) external {
-        require(slot0.sqrtPriceX96 == 0, 'AI');
-
-        int24 tick = TickMath.getTickAtSqrtRatio(startSqrtPriceX96);
-        slot0 = Slot0(startSqrtPriceX96, tick);
-
-    }
 
     /**
     address recipient 参数，会一直都是NonfungiblePositionManager 的合约地址，这样设计的目的是什么?
@@ -460,11 +480,51 @@ contract UniswapV3Pool is IUniswapV3Pool {
     }
 
 
+    function observe(uint32[] calldata secondsAgos)
+    public
+    view
+    returns (int56[] memory tickCumulatives)
+    {
+        return
+            observations.observe(
+            _blockTimestamp(),
+            secondsAgos,
+            slot0.tick,
+            slot0.observationIndex,
+            slot0.observationCardinality
+        );
+    }
+
+
+    function increaseObservationCardinalityNext(
+        uint16 observationCardinalityNext
+    ) public {
+        uint16 observationCardinalityNextOld = slot0.observationCardinalityNext;
+        uint16 observationCardinalityNextNew = observations.grow(
+            observationCardinalityNextOld,
+            observationCardinalityNext
+        );
+
+        if (observationCardinalityNextNew != observationCardinalityNextOld) {
+            slot0.observationCardinalityNext = observationCardinalityNextNew;
+            emit IncreaseObservationCardinalityNext(
+                observationCardinalityNextOld,
+                observationCardinalityNextNew
+            );
+        }
+    }
+
+
+
     function balance0() internal returns (uint256 balance) {
         balance = IERC20(token0).balanceOf(address(this));
     }
 
     function balance1() internal returns (uint256 balance) {
         balance = IERC20(token1).balanceOf(address(this));
+    }
+
+    function _blockTimestamp() internal view returns (uint32 timestamp) {
+        timestamp = uint32(block.timestamp);
     }
 }

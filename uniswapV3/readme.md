@@ -5,8 +5,9 @@
 - [x] 创建流动性池 uniswapV3/src/UniswapV3Factory#createPool
 - [x] 质押流动性 uniswapV3/src/NonfungiblePositionManager#mint
 - [x] 交换代币 uniswapV3/src/UniswapV3Pool#swap
-- [x]  合约报价
+- [x]  合约报价  uniswapV3/src/UniswapV3Quoter#quoteSingle
 - []  移除流动性
+- []  价格预言机
 - []  pair合约
 - []  取回质押代币
 - []  前端界面 (from https://github.com/Jeiwan/uniswapv3-book)

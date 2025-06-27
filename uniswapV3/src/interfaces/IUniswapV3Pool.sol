@@ -21,11 +21,10 @@ interface IUniswapV3Pool {
     view
     returns (
         uint160 sqrtPriceX96,
-        int24 tick
-//    ,
-//        uint16 observationIndex,
-//        uint16 observationCardinality,
-//        uint16 observationCardinalityNext
+        int24 tick,
+        uint16 observationIndex,
+        uint16 observationCardinality,
+        uint16 observationCardinalityNext
     );
 
 }

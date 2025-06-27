@@ -45,7 +45,7 @@ contract UniswapV3PoolTest is TestUtils, Test {
         // 初始价格2500
         pool.initialize(Math.sqrtPFrac(1, 2500));
 
-        (uint160 sqrtPriceX96, int24 tick) = pool.slot0();
+        (uint160 sqrtPriceX96, int24 tick,,,) = pool.slot0();
         console.log("slot0.sqrtPriceX96: %s", sqrtPriceX96);
         console.log("slot0.tick: %s", tick); // 78244
         curTick = tick;
